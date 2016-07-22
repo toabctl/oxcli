@@ -1,0 +1,24 @@
+# Docker Infrastructure (see http://blog.travis-ci.com/2014-12-17-faster-builds-with-container-based-infrastructure/ )
+sudo: false
+
+language: python
+matrix:
+  include:
+    - python: 2.7
+      env: TOX_ENV=pep8
+    - python: 2.7
+      env: TOX_ENV=py27
+    - python: 3.5
+      env: TOX_ENV=py34
+install:
+  - pip install tox
+script:
+  - tox -e $TOX_ENV
+deploy:
+  provider: pypi
+  user: "toabctl"
+  password:
+    secure: "TcjFz8YzpwzihCrMiHsilkgiPcdxDgD6vj8mEdUclH+6gmj/hDa74MR0gYohsa8VoK0Luld96G+3iQDoZ+KBUsRR90z+D13K723Q8S/1+GztDBVBj2dMr4cX62OGgPXST0N2vEneReRKc20W1I85Pk9/FEL21+BYRz2GWn8dPDKLUb840rI4EIIbJXyj2dOvTjkK0zCGYX6/yQraYLQv1vwtdM3564h7vGgzGzYqUoJobIHGxsAoFjlVMoXpGfMSv7Cx/1bvkGSPr+XyxbCxBNBplxp62bXOYglLHK2WJ7fO6KZJ0XPcvDdd1g19a70r8mvpd0rnGiaHGl52QGUXAQB9c/MTE0rayJFKmpeKHgxECGlJM1czX6GZuugvJV3CExB8aAwxSvvEUjwiSHncgjw9Kb2RuXDnct2yza/1eas0BjXsfabQyv1B2r5vCmniWBxkpBcsDsvHLuYfJsSt467nEcxoEv+1M189ZkoPAbymm+/V/7Sn5I92w1fS/ndomXbVkpawPxGikpJf2hWQ7kuPm269ZL757i5NZ2D+J5rO/ZaUG8DfsN7ZQTbUiDQYBgMquBpfu8zZmCr0YJy+vDBDZW6AZpzINTTJtQfa2RmoVkldp9Olki4QtIaCfA2LZjpIWHezg9gJHjm3RV5lZtwB3Ldq27zYBPl7T/XIW74="
+  on:
+    tags: true
+    branch: master
