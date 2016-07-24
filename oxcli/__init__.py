@@ -18,99 +18,58 @@
 
 from __future__ import print_function
 
-import argparse
-from collections import namedtuple
+import logging
 import os
 import sys
 
 from config import config_get
 from session import OxCliSession
 
-from tabulate import tabulate
+from cliff.app import App
+from cliff.commandmanager import CommandManager
 
+from oxcli import version
 
 # path to the user configuration file
 USER_CONFIG_PATH = os.path.expanduser('~/.oxcli.ini')
 
 
-def folder_list(session, content_type):
-    """list folders for the given content type"""
-    FolderList = namedtuple("FolderList", ["id", "title"])
-    args = {
-        "action": "allVisible",
-        "content_type": content_type,
-        "columns": "1,300"
-    }
-    r = session.request("get", "/folders", {"params": args})
-    for visibility, folders in r.json()["data"].items():
-        return [FolderList._make(folder) for folder in folders]
+class OxCliApp(App):
+
+    def __init__(self):
+        super(OxCliApp, self).__init__(
+            description='command line client for Open-Xchange',
+            version=version.version_string(),
+            command_manager=CommandManager('oxcli.cmds'),
+            deferred_help=True,
+        )
+        self._config = None
+        self._session = None
+
+    def initialize_app(self, argv):
+        self.LOG.debug('initialize_app')
+        logging.getLogger("requests").setLevel(logging.WARNING)
+        self._config = config_get(USER_CONFIG_PATH)
+        self._session = OxCliSession(self._config['url'],
+                                     self._config['user'],
+                                     self._config['password'])
+        self.LOG.debug('config and session ready')
+
+    def prepare_to_run_command(self, cmd):
+        self.LOG.debug('prepare_to_run_command %s', cmd.__class__.__name__)
+
+    def clean_up(self, cmd, result, err):
+        self.LOG.debug('clean_up %s', cmd.__class__.__name__)
+        if err:
+            self.LOG.debug('got an error: %s', err)
 
 
-def tasks_list(session):
-    """list tasks from all available folders"""
-    TasksList = namedtuple("TasksList", ["id", "folder", "title",
-                                         "last_modified"])
-    # get all folders
-    tasks_folder_list = folder_list(session, "tasks")
-
-    tasks = []
-    for tasks_folder in tasks_folder_list:
-        args = {
-            "action": "all",
-            "folder": tasks_folder.id,
-            "columns": "1,200,5"
-        }
-        r = session.request("get", "/tasks", {"params": args})
-        for task in r.json()["data"]:
-            # add the folder name to the right position
-            task.insert(1, tasks_folder.title)
-            tasks.append(TasksList._make(task))
-    return tasks
-
-
-def parse_tasks(args, session):
-    """parse command line arguments for subcommand 'tasks'"""
-    if args["folder_list"]:
-        folders = folder_list(session, "tasks")
-        print(tabulate(folders, headers="keys"))
-        sys.exit(0)
-    elif args["list"]:
-        tasks = tasks_list(session)
-        print(tabulate(tasks, headers="keys"))
-        sys.exit(0)
-    else:
-        sys.exit(1)
-
-
-def parse_args():
-    """parse command line arguments"""
-    parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(title='commands')
-
-    # tasks parser
-    parser_tasks = subparsers.add_parser('tasks',
-                                         help='tasks related commands')
-    parser_tasks.add_argument('--folder-list', action='store_true',
-                              help='list task folders')
-    parser_tasks.add_argument('--list', action='store_true',
-                              help='list tasks')
-    parser_tasks.set_defaults(func=parse_tasks)
-
-    return vars(parser.parse_args())
-
-
-def main():
+def main(argv=sys.argv[1:]):
     """main entry point"""
-    args = parse_args()
-
-    # get/create a config
-    conf = config_get(USER_CONFIG_PATH)
-    # create a session
-    s = OxCliSession(conf['url'], conf['user'], conf['password'])
-    # do something useful now!
-    args["func"](args, s)
+    app = OxCliApp()
+    return app.run(argv)
 
 
 # useful for debugging
 if __name__ == "__main__":
-    main()
+    sys.exit(main(sys.argv[1:]))

@@ -1,4 +1,4 @@
 # pbr should be first
 pbr>=1.0
 requests
-tabulate
+cliff
