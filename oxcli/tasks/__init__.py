@@ -19,20 +19,7 @@ from collections import namedtuple
 
 from cliff.lister import Lister
 
-
-def folder_list(session, content_type):
-    """list folders for the given content type"""
-    headers = ["id", "title"]
-    FolderList = namedtuple("FolderList", headers)
-    args = {
-        "action": "allVisible",
-        "content_type": content_type,
-        "columns": "1,300"  # id, title
-    }
-    r = session.request("get", "/folders", {"params": args})
-    for visibility, folders in r.json()["data"].items():
-        return (headers,
-                [FolderList._make(folder) for folder in folders])
+from oxcli.common import folder_list
 
 
 def tasks_list(session):
